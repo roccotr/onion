@@ -1,0 +1,129 @@
+#[macro_use] extern crate log;
+
+extern crate env_logger;
+
+use std::io::prelude::*;
+use std::fs::File;
+use std::net::{SocketAddr, TcpStream, TcpListener};
+use std::io::{self, BufReader};
+
+
+
+struct Client {
+    stream: TcpStream,
+    token: u32
+}
+
+impl Client {
+    fn new(stream: TcpStream, token: u32) -> Client {
+        Client{stream: stream, token: token}
+    }
+
+    fn read(&mut self){
+        // loop {
+        //     let mut buff = [0u8; 512];
+        //     let size = self.stream.read(&mut buff);
+        //     match size {
+        //         Ok(s) => {
+        //             if s == 0 {
+        //                 break;
+        //             }
+        //         }
+        //         Err(_) => error!("Size error")
+        //     }
+        //     println!("{:?}", size);
+        //     println!("{:?}", std::string::String::from_utf8_lossy(&buff));
+        // }
+        let mut f = File::open("sample.mp4").unwrap();
+        //let mut buff = BufReader::new(f);
+
+        loop{
+            let mut buff = [0u8;512];
+            let s = f.read(&mut buff);
+            match s {
+                Ok(s) => {
+                    //println!("{:?}",std::str::from_utf8(&buff).unwrap());
+
+                    if s == 0 {
+                        println!("{:?}", "close");
+                        break;
+                    }
+                    println!("{:?}",s);
+                    self.stream.write(&buff);
+
+                }
+                Err(_) => {
+                    error!("error");
+                }
+            }
+        }
+        //while buff.read_line(&mut s).unwrap() > 0 {
+        //    self.stream.write(s.as_bytes());
+        //}
+        // let b = buff.fill_buf().unwrap();
+        //self.stream.write(&b);
+
+
+
+        // match std::str::from_utf8(&buff) {
+        //     Ok(s) => println!("{:?}", s),
+        //     Err(e) => println!("{:?}", e)
+        // }
+    }
+
+}
+
+
+struct Server {
+    listener: TcpListener,
+    token: u32
+}
+
+impl Server {
+    fn new(listener: TcpListener) -> Server {
+        Server{listener: listener, token: 0}
+    }
+    fn run(self) {
+        for stream in self.listener.incoming() {
+            match stream {
+                Ok(stream) => {
+                        std::thread::spawn(move || {
+                            debug!("New stream");
+                            Client::new(stream, 1).read();
+
+                        });
+                },
+                Err(e) => {
+                    error!("{:?}", e);
+                }
+            }
+        }
+    }
+}
+
+
+fn main() {
+    env_logger::init().unwrap();
+    let address : SocketAddr = "0.0.0.0:9090".parse().unwrap();
+    let listener = TcpListener::bind(&address).unwrap();
+    let mut server = Server::new(listener);
+    server.run();
+
+}
+
+
+#[test]
+fn stream() {
+    let mut f = File::open("test.mpg");
+    match f {
+        Ok(f) => {
+            let mut buff = BufReader::new(f);
+            let mut stream = TcpStream::connect("0.0.0.0:9090").unwrap();
+            let b = buff.fill_buf().unwrap();
+            stream.write(&b);
+
+            println!("readed")
+        },
+        Err(_) => println!("error")
+    }
+}

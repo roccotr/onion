@@ -1,0 +1,17 @@
+[package]
+name = "onion"
+version = "0.1.0"
+authors = ["sommoyogurt <rtrombetta@gmail.com>"]
+
+[dependencies]
+capnp = "*"
+capnpc = "*"
+capnp-rpc = "*"
+clap = "*"
+log = "*"
+log4rs = { version = "*", features = ["toml"] }
+mio = "*"
+
+
+[lib]
+name = "onion"
