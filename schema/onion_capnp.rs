@@ -4,7 +4,7 @@
 
 
 #[repr(u16)]
-#[derive(Clone, Copy, PartialEq)]
+#[derive(Clone, Copy, PartialEq, Debug)]
 pub enum OnionCommand {
   NewConnection = 0,
   NewChannel = 1,

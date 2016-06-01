@@ -5,7 +5,9 @@ use std::collections::VecDeque;
 
 use mio::{EventLoop, EventSet, Token};
 use mio::tcp::TcpStream;
+use mio::{TryRead,TryWrite};
 use onion::{Onion, OnionCommand};
+use rcp::OnionMessageReader;
 
 
 
@@ -53,6 +55,38 @@ impl Connection {
     }
 
     pub fn process_rules(&mut self, ev_loop: &mut mio::EventLoop<Onion>, parent_command: &mut VecDeque<OnionCommand>) {
+        info!("Process rules connection");
+        if self.socket_status.is_readable() {
+            self.read();
+            self.socket_status.remove(mio::EventSet::readable());
+        }
+    }
 
+    fn read(&mut self) {
+        let mut buffer = [0u8;512];
+        match self.socket.try_read(&mut buffer) {
+            Ok(Some(0)) => {
+                info!("{:?}: EOF!", self.socket.peer_addr() );
+                self.read_eof = true;
+            },
+            Ok(Some(n)) => {
+                info!("{:?}: Read {}bytes", self.socket.peer_addr(), n);
+                match OnionMessageReader::new_from_buffer(&buffer) {
+                    Ok(msg) => match msg.get() {
+                        Ok(s) => info!("{:?}", s.get_command()),
+                        Err(e) => error!("{:?}", e)
+                    },
+                    Err(e) => error!("Error {:?}", e)
+                };
+            },
+            Ok(None) => {
+                info!("{:?}: Noop!", self.socket.peer_addr());
+            },
+            Err(e) => {
+                error!("got an error trying to read; err={:?}", e);
+                self.failed =true;
+            }
+
+        };
     }
 }

@@ -93,7 +93,7 @@ impl mio::Handler for Onion {
     type Timeout = ();
     type Message = ();
     fn ready(&mut self, ev_loop: &mut mio::EventLoop<Self>, token: mio::Token, events: mio::EventSet) {
-        info!("{:?} - {:?}", token, events);
+        info!("Ready {:?} - {:?}", token, events);
         self.connections[token].handle_event(ev_loop, events);
         if self.connections[token].is_closed() {
             info!("Removing connection: {:?}", token);
